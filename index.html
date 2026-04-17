@@ -23,6 +23,31 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
+        
+        /* CSS Tambahan untuk Animasi Flashcard 3D */
+        .perspective { perspective: 1000px; }
+        .flip-card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        .is-flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -52,11 +77,16 @@
             <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
                 Panduan praktis dan interaktif untuk memahami struktur kalimat bahasa Jepang dasar. Mulai perjalanan JLPT-mu dari sini!
             </p>
-            <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-                <div class="rounded-md shadow">
+            <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8 sm:space-x-4">
+                <div class="rounded-md shadow mb-4 sm:mb-0">
                     <a href="#belajar" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 md:py-4 md:text-lg transition duration-300">
                         Pilih Level
                     </a>
+                </div>
+                <div class="rounded-md shadow">
+                    <button onclick="openFlashcards()" class="w-full flex items-center justify-center px-8 py-3 border border-red-600 text-base font-medium rounded-md text-red-600 bg-white hover:bg-red-50 md:py-4 md:text-lg transition duration-300">
+                        🎴 Mode Flashcard
+                    </button>
                 </div>
             </div>
         </div>
@@ -241,8 +271,125 @@
         <p>&copy; 2026 BunpouMaster. Dibuat untuk panduan belajar mandiri Bahasa Jepang.</p>
     </footer>
 
+    <!-- Overlay Modal Flashcard -->
+    <div id="flashcard-modal" class="fixed inset-0 bg-gray-900 bg-opacity-90 z-[100] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
+        <div class="w-full max-w-lg mb-4 flex justify-between items-center">
+            <div class="text-white font-bold text-lg tracking-wider" id="fc-counter">1 / 8</div>
+            <button onclick="closeFlashcards()" class="text-white hover:text-red-400 transition text-4xl leading-none">&times;</button>
+        </div>
+
+        <!-- Wadah Flashcard -->
+        <div class="perspective w-full max-w-lg h-96 cursor-pointer" onclick="flipCard()">
+            <div id="fc-inner" class="flip-card-inner rounded-2xl shadow-2xl">
+                <!-- Sisi Depan (Front) -->
+                <div class="flip-card-front bg-white rounded-2xl p-8 flex flex-col items-center justify-center text-center border-4 border-red-100">
+                    <span id="fc-badge" class="bg-red-100 text-red-800 text-sm px-4 py-1 rounded-full font-bold mb-6">Level</span>
+                    <h2 id="fc-title" class="text-4xl sm:text-5xl font-bold text-gray-800 japanese-text mb-6">〜たいです</h2>
+                    <p class="text-gray-400 text-sm mt-4 animate-pulse flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                        Klik kartu untuk melihat arti
+                    </p>
+                </div>
+                <!-- Sisi Belakang (Back) -->
+                <div class="flip-card-back bg-red-600 rounded-2xl p-8 flex flex-col items-center justify-center text-center text-white">
+                    <h3 id="fc-meaning" class="text-2xl font-bold mb-2">"Ingin (melakukan sesuatu)"</h3>
+                    <p id="fc-formula" class="text-red-100 text-sm mb-6 pb-6 border-b border-red-400 w-full">Rumus: KK Masu + たいです</p>
+                    <div class="w-full text-left bg-red-700 bg-opacity-50 p-4 rounded-lg shadow-inner">
+                        <p id="fc-jp" class="japanese-text text-xl font-bold mb-1 text-white">日本へ行きたいです。</p>
+                        <p id="fc-romaji" class="text-sm text-red-200 italic">Nihon e ikitai desu.</p>
+                        <p id="fc-id" class="text-sm font-medium mt-2 text-white">Saya ingin pergi ke Jepang.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Kontrol -->
+        <div class="w-full max-w-lg flex justify-between items-center mt-8 gap-4">
+            <button onclick="prevCard()" class="flex-1 bg-white bg-opacity-10 hover:bg-opacity-20 text-white py-3 rounded-xl font-semibold transition backdrop-blur-md border border-white border-opacity-20">⬅️ Sebelumnya</button>
+            <button onclick="nextCard()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-semibold transition shadow-lg border border-red-500">Selanjutnya ➡️</button>
+        </div>
+    </div>
+
     <!-- JavaScript untuk Sistem Tab & Togle -->
     <script>
+        // Data Flashcard Interaktif
+        const flashcardsData = [
+            { level: 'N5', badge: 'Keinginan', title: '〜たいです', meaning: '"Ingin (melakukan sesuatu)"', formula: 'Kata Kerja bentuk Masu (masu dicoret) + たいです', jp: '日本へ行きたいです。', romaji: 'Nihon e ikitai desu.', id: 'Saya ingin pergi ke Jepang.' },
+            { level: 'N5', badge: 'Permintaan', title: '〜てください', meaning: '"Tolong (lakukan)..."', formula: 'Kata Kerja bentuk て (Te) + ください', jp: 'ちょっと待ってください。', romaji: 'Chotto matte kudasai.', id: 'Tolong tunggu sebentar.' },
+            { level: 'N5', badge: 'Pengalaman', title: '〜たことがあります', meaning: '"Pernah (melakukan)..."', formula: 'Kata Kerja bentuk た (Ta) + ことがあります', jp: '寿司を食べたことがあります。', romaji: 'Sushi o tabeta koto ga arimasu.', id: 'Saya pernah makan sushi.' },
+            { level: 'N5', badge: 'Partikel', title: 'に / で (Tempat)', meaning: '"Di / Ke"', formula: 'に (Arah/Keberadaan tetap), で (Tempat aksi)', jp: '学校で勉強します。', romaji: 'Gakkou de benkyou shimasu.', id: 'Belajar di sekolah.' },
+            { level: 'N4', badge: 'Kemampuan', title: '〜ことができる', meaning: '"Bisa / Mampu (melakukan)..."', formula: 'Kata Kerja bentuk Kamus + ことができる', jp: '日本語を話すことができます。', romaji: 'Nihongo o hanasu koto ga dekimasu.', id: 'Saya bisa berbicara bahasa Jepang.' },
+            { level: 'N4', badge: 'Rencana', title: '〜つもりです', meaning: '"Bermaksud / Berencana untuk..."', formula: 'KK Kamus / KK Nai + つもりです', jp: '来年、日本へ行くつもりです。', romaji: 'Rainen, Nihon e iku tsumori desu.', id: 'Tahun depan, saya berencana pergi ke Jepang.' },
+            { level: 'N4', badge: 'Saran', title: '〜ほうがいいです', meaning: '"Sebaiknya..."', formula: 'KK た (Ta) / ない (Nai) + ほうがいいです', jp: '早く寝たほうがいいです。', romaji: 'Hayaku neta hou ga ii desu.', id: 'Sebaiknya kamu cepat tidur.' },
+            { level: 'N4', badge: 'Kemungkinan', title: '〜かもしれません', meaning: '"Mungkin / Bisa jadi..."', formula: 'Bentuk Biasa (Futsukei) + かもしれません', jp: '明日は雨が降るかもしれません。', romaji: 'Ashita wa ame ga furu kamoshiremasen.', id: 'Besok mungkin akan turun hujan.' }
+        ];
+
+        let currentCardIndex = 0;
+
+        // Fungsi Membuka Modal Flashcard
+        function openFlashcards() {
+            const modal = document.getElementById('flashcard-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Mencegah background scroll
+            currentCardIndex = 0;
+            renderCard();
+        }
+
+        // Fungsi Menutup Modal Flashcard
+        function closeFlashcards() {
+            const modal = document.getElementById('flashcard-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto'; // Mengembalikan scroll
+            document.getElementById('fc-inner').classList.remove('is-flipped'); // Reset posisi kartu
+        }
+
+        // Fungsi Merender Konten Kartu
+        function renderCard() {
+            const card = flashcardsData[currentCardIndex];
+            
+            // Memastikan kartu menghadap ke depan saat berganti soal
+            document.getElementById('fc-inner').classList.remove('is-flipped');
+            
+            // Jeda sejenak agar animasi balik kartu selesai sebelum teks diganti
+            setTimeout(() => {
+                document.getElementById('fc-badge').innerText = `${card.level} - ${card.badge}`;
+                document.getElementById('fc-title').innerText = card.title;
+                document.getElementById('fc-meaning').innerText = card.meaning;
+                document.getElementById('fc-formula').innerText = card.formula;
+                document.getElementById('fc-jp').innerText = card.jp;
+                document.getElementById('fc-romaji').innerText = card.romaji;
+                document.getElementById('fc-id').innerText = card.id;
+                document.getElementById('fc-counter').innerText = `${currentCardIndex + 1} / ${flashcardsData.length}`;
+            }, 150);
+        }
+
+        // Fungsi Membalik Kartu (Depan/Belakang)
+        function flipCard() {
+            document.getElementById('fc-inner').classList.toggle('is-flipped');
+        }
+
+        // Fungsi Navigasi Kartu Berikutnya
+        function nextCard() {
+            if (currentCardIndex < flashcardsData.length - 1) {
+                currentCardIndex++;
+            } else {
+                currentCardIndex = 0; // Kembali ke awal
+            }
+            renderCard();
+        }
+
+        // Fungsi Navigasi Kartu Sebelumnya
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+            } else {
+                currentCardIndex = flashcardsData.length - 1; // Lompat ke akhir
+            }
+            renderCard();
+        }
+
         // Fungsi untuk menyembunyikan semua contoh kalimat saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.hidden-example').forEach(el => {
